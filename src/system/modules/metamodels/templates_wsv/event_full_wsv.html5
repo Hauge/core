@@ -178,6 +178,59 @@ if (isset($_GET['wsv_logout'])) {
 <!-- Geschützter Inhalt (Zugang gewährt)                          -->
 <!-- ============================================================ -->
 
+<!-- Markierung + Abmelde-Button -->
+<style>
+  .wsv-protected-area {
+    outline: 2px dashed #aaa;
+    outline-offset: 8px;
+    border-radius: 4px;
+    position: relative;
+    padding-top: 2.8em;
+  }
+  .wsv-access-bar {
+    position: absolute;
+    top: -1px;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: .6em;
+    font-size: .8rem;
+    color: #666;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 0 0 0 4px;
+    padding: .35em .75em;
+    line-height: 1;
+  }
+  .wsv-access-bar .material-icons { font-size: 1rem; color: #4caf50; }
+  .wsv-logout-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .3em;
+    font-size: .78rem;
+    color: #555;
+    text-decoration: none;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: .25em .6em;
+    background: #fff;
+    transition: background .15s;
+  }
+  .wsv-logout-btn:hover { background: #f0f0f0; color: #333; text-decoration: none; }
+  .wsv-logout-btn .material-icons { font-size: .9rem; }
+</style>
+
+<div class="wsv-protected-area">
+  <div class="wsv-access-bar">
+    <span class="material-icons">lock_open</span>
+    Geschützter Bereich &nbsp;|&nbsp;
+    <a href="<?= htmlspecialchars(\Environment::get('base') . strtok(\Environment::get('request'), '?')) ?>?wsv_logout=1"
+       class="wsv-logout-btn"
+       title="Abmelden und Bereich sperren">
+      <span class="material-icons">logout</span> Abmelden
+    </a>
+  </div>
+
 <?php
 // ============================================================
 // Meldeschluss-Regel: relativ zum Veranstaltungsbeginn
@@ -443,6 +496,8 @@ const filterDiscipline = disciplineElem ? disciplineElem.value.toLowerCase() : '
 
         </script>
       <?php endif; ?>
+
+</div><!-- /.wsv-protected-area -->
 
 <?php endif; /* $wsvAccessGranted */ ?>
 
