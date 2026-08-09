@@ -154,6 +154,7 @@ if (isset($_GET['wsv_logout'])) {
     <h3 style="margin:.5em 0 1em;">Geschützter Bereich</h3>
     <p style="margin-bottom:1.2em;color:#555;">Bitte gib das Passwort ein, um Anmeldeformular und Teilnehmerliste anzuzeigen.</p>
     <form method="post" action="<?= htmlspecialchars(\Environment::get('request')) ?>#anmelden">
+      <input type="hidden" name="REQUEST_TOKEN" value="{{request_token}}">
       <?php if ($wsvPasswordError): ?>
         <p style="color:#c0392b;margin-bottom:.8em;"><strong>Falsches Passwort – bitte erneut versuchen.</strong></p>
       <?php endif; ?>
