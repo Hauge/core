@@ -34,8 +34,8 @@ if (!$wsvAccessGranted && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST[
     if ($_POST['wsv_pw'] === $WSV_FORM_PASSWORD) {
         $_SESSION[$WSV_SESSION_KEY] = true;
         $wsvAccessGranted = true;
-        // Redirect to prevent re-POST on reload
-        header('Location: ' . \Environment::get('request'));
+        // Redirect to prevent re-POST on reload (absolute URL erforderlich)
+        header('Location: ' . \Environment::get('base') . \Environment::get('request'));
         exit;
     } else {
         $wsvPasswordError = true;
@@ -46,7 +46,7 @@ if (!$wsvAccessGranted && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST[
 if (isset($_GET['wsv_logout'])) {
     unset($_SESSION[$WSV_SESSION_KEY]);
     $wsvAccessGranted = false;
-    header('Location: ' . strtok(\Environment::get('request'), '?'));
+    header('Location: ' . \Environment::get('base') . strtok(\Environment::get('request'), '?'));
     exit;
 }
 ?>
