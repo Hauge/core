@@ -321,7 +321,6 @@ $headersMap = [
       sort($yearOptions);
       sort($disciplineOptions);
       ?>
-</div>
       <?php if (count($dataArray) > 0): ?>
 	  <div class="mod_article information blue">
         <h3 id="counter" class="tl_info">
@@ -501,7 +500,8 @@ const filterDiscipline = disciplineElem ? disciplineElem.value.toLowerCase() : '
 
 <?php endif; /* $wsvAccessGranted */ ?>
 
-    </div> <!-- /#anmelden -->
+    </div><!-- /#anmelden -->
+  </div><!-- /.event layout_full -->
 
   <?php else: ?>
     <!-- kein zukünftiges Event in PID 109/114 -->
