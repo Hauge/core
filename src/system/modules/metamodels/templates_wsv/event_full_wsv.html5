@@ -1,0 +1,462 @@
+<?php
+// Open Graph Meta-Tags
+if ($this->singleSRC):
+    $GLOBALS['TL_HEAD']['OG_IMAGE'] = '<meta property="og:image" content="' . \Environment::get('url') . '/' . $this->singleSRC . '" />';
+endif;
+$GLOBALS['TL_HEAD']['OG_TITLE']       = '<meta property="og:title" content="' . $this->title . '" />';
+$GLOBALS['TL_HEAD']['OG_DESCRIPTION'] = '<meta property="og:description" content="' . strip_tags($this->teaser) . '" />';
+
+// Aktuelles Datum/Uhrzeit vorbereiten
+$currentDateTime = new DateTime();
+try {
+    $contentDateTime = new DateTime($this->datetime);
+} catch (\Exception $e) {
+    $contentDateTime = $currentDateTime;
+}
+
+// ============================================================
+// Passwortschutz für Anmeldeformular und Teilnehmerliste
+// ------------------------------------------------------------
+// Passwort hier ändern:
+$WSV_FORM_PASSWORD = 'Rastbuechl2025';
+// Session-Schlüssel ist event-spezifisch, damit Events unabhängig voneinander gesperrt werden können
+$WSV_SESSION_KEY = 'wsv_anmelde_access_' . (int)$this->id;
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Passwort-Eingabe verarbeiten
+$wsvAccessGranted  = !empty($_SESSION[$WSV_SESSION_KEY]);
+$wsvPasswordError  = false;
+
+if (!$wsvAccessGranted && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wsv_pw'])) {
+    if ($_POST['wsv_pw'] === $WSV_FORM_PASSWORD) {
+        $_SESSION[$WSV_SESSION_KEY] = true;
+        $wsvAccessGranted = true;
+        // Redirect to prevent re-POST on reload
+        header('Location: ' . \Environment::get('request'));
+        exit;
+    } else {
+        $wsvPasswordError = true;
+    }
+}
+
+// Abmelden (optionaler GET-Parameter ?wsv_logout=1)
+if (isset($_GET['wsv_logout'])) {
+    unset($_SESSION[$WSV_SESSION_KEY]);
+    $wsvAccessGranted = false;
+    header('Location: ' . strtok(\Environment::get('request'), '?'));
+    exit;
+}
+?>
+<div class="event layout_full wsvdetail mod_article padding-top-2 block<?= $this->class ?>"
+     itemscope itemtype="http://schema.org/Event">
+
+  <div class="ce_text ce_text_bb bb_special_headline no-padding-bottom">
+    <?php
+    // Headline und Subheadline
+    $subheadline    = '';
+    $subheadlinecss = '';
+    if ($this->subheadline):
+        $subheadline    = '<span class="bb_subheadline">' . $this->subheadline . '</span>';
+        $subheadlinecss = ' bbsh';
+    endif;
+
+    if ($this->headline_zusatz):
+        echo '<h1 class="bb_headline' . $subheadlinecss . ' bb_zusatz" itemprop="name">'
+             . '<span>' . $this->title . '</span>'
+             . '<b>' . $this->headline_zusatz . '</b>'
+             . '</h1>'
+             . $subheadline;
+    else:
+        echo '<h1 class="bb_headline' . $subheadlinecss . '" itemprop="name">'
+             . $this->title
+             . '</h1>'
+             . $subheadline;
+    endif;
+    ?>
+
+    <span class="info datetime">
+      <span class="material-icons">schedule</span>
+      <time datetime="<?= $this->datetime ?>" itemprop="startDate">
+        <?= $this->date ?><?php if ($this->time): ?> <?= $this->time ?><?php endif; ?>
+      </time>
+    </span>
+
+    <?php if ($this->location): ?>
+      <span class="info location" itemprop="location" itemscope itemtype="http://schema.org/Place">
+        <span class="material-icons">pin_drop</span>
+        <span itemprop="name"><?= $this->location ?></span>
+        <?php if ($this->address): ?>
+          <span>&nbsp;</span>
+          <span itemprop="address" itemscope itemtype="http://schema.org/PostalAddress">
+            <?= $this->address ?>
+          </span>
+        <?php endif; ?>
+      </span>
+    <?php endif; ?>
+
+    <?php if ($this->pid == 109 && $contentDateTime > $currentDateTime): ?>
+      <div class="submit_container">
+        <a href="javascript:history.back()" class="button">&lt; Zurück</a>
+        <a href="<?= \Environment::get('request') ?>#anmelden"
+           title="Zum Wettkampf anmelden"
+           class="button submit">anmelden</a>
+      </div>
+    <?php endif; ?>
+
+    <?php
+    // Feature-Bild anzeigen, falls kein Detail-Text gesetzt ist
+    if (!empty($this->singleSRC) && empty($this->details)):
+        $picture = \Picture::create($this->singleSRC, 224)->getTemplateData();
+        $picture['alt'] = 'Bild zur Veranstaltung ' . $this->title;
+        $this->insert('picture_default', $picture);
+    endif;
+    ?>
+
+    <?php if ($this->enclosure): ?>
+      <?php foreach ($this->enclosure as $enclosure):
+          $enclosure['titletext'] = str_replace(['-', '_'], ' ', pathinfo($enclosure['name'], PATHINFO_FILENAME));
+      ?>
+        <span class="submit_container ext-<?= $enclosure['extension'] ?>">
+          <a class="download-element no-margin-bottom"
+             href="<?= $enclosure['href'] ?>"
+             title="<?= $enclosure['title'] ?>">
+            <img src="<?= $enclosure['icon'] ?>"> <?= $enclosure['titletext'] ?>&nbsp;
+            <span class="size">(<?= $enclosure['filesize'] ?>)</span>
+          </a>
+        </span>
+      <?php endforeach; ?>
+    <?php endif; ?>
+  </div>
+
+  <?php if ($this->details): ?>
+    <?= $this->details ?>
+  <?php else: ?>
+    <div class="ce_text block">
+      <?= $this->teaser ?>
+    </div>
+  <?php endif; ?>
+
+  <?php if ( ($this->pid == 109 || $this->pid == 114) && $contentDateTime > $currentDateTime ): ?>
+      <!-- Ende .ce_text bb_special_headline -->
+
+    <div id="anmelden" class="mod_article no-padding-bottom">
+
+<?php if (!$wsvAccessGranted): ?>
+<!-- ============================================================ -->
+<!-- Passwortschutz                                               -->
+<!-- ============================================================ -->
+<div class="ce_text block wsv-pw-gate">
+  <div class="tl_info" style="max-width:420px;margin:2em auto;padding:2em;border:1px solid #ccc;border-radius:6px;background:#f9f9f9;text-align:center;">
+    <span class="material-icons" style="font-size:2.5rem;color:#555;">lock</span>
+    <h3 style="margin:.5em 0 1em;">Geschützter Bereich</h3>
+    <p style="margin-bottom:1.2em;color:#555;">Bitte gib das Passwort ein, um Anmeldeformular und Teilnehmerliste anzuzeigen.</p>
+    <form method="post" action="<?= htmlspecialchars(\Environment::get('request')) ?>#anmelden">
+      <?php if ($wsvPasswordError): ?>
+        <p style="color:#c0392b;margin-bottom:.8em;"><strong>Falsches Passwort – bitte erneut versuchen.</strong></p>
+      <?php endif; ?>
+      <input type="password"
+             name="wsv_pw"
+             placeholder="Passwort"
+             autocomplete="current-password"
+             required
+             style="width:100%;padding:.6em .8em;font-size:1rem;border:1px solid #bbb;border-radius:4px;box-sizing:border-box;margin-bottom:.8em;">
+      <button type="submit"
+              class="button submit"
+              style="width:100%;padding:.65em 1em;font-size:1rem;">
+        Bestätigen
+      </button>
+    </form>
+  </div>
+</div>
+
+<?php else: ?>
+<!-- ============================================================ -->
+<!-- Geschützter Inhalt (Zugang gewährt)                          -->
+<!-- ============================================================ -->
+
+<?php
+// ============================================================
+// Meldeschluss-Regel: relativ zum Veranstaltungsbeginn
+// ------------------------------------------------------------
+//   daysBefore : Anzahl Tage vor Veranstaltungsbeginn
+//   time       : Uhrzeit an diesem Tag (HH:MM, Europe/Berlin)
+//
+// Beispiel: daysBefore = 1, time = '18:00'
+//   -> Formular wird am Vortag des Events um 18:00 Uhr ausgeblendet
+// ============================================================
+
+// Standard-Regel für alle Events
+$deadlineRule = ['daysBefore' => 3, 'time' => '18:00'];
+
+// Optional: abweichende Regeln je Event-ID (überschreibt den Standard)
+$deadlineRulesByEvent = [
+    // 1530 => ['daysBefore' => 3, 'time' => '18:00'],
+];
+
+$rule = $deadlineRulesByEvent[$this->id] ?? $deadlineRule;
+
+// Meldeschluss aus dem Veranstaltungstag berechnen (feste Zeitzone gegen UTC-Server)
+$tz       = new DateTimeZone('Europe/Berlin');
+$deadline = new DateTime($contentDateTime->format('Y-m-d') . ' ' . $rule['time'], $tz);
+$deadline->modify('-' . (int) $rule['daysBefore'] . ' day');
+
+// Formular nur zeigen, solange der Meldeschluss noch nicht erreicht ist
+if ($currentDateTime < $deadline):
+?>
+      <div class="ce_headline bb_special_headline first">
+        <h2 class="bb_headline bbsh bb_zusatz">
+          <span>Online</span> <b>Anmeldung</b>
+        </h2>
+        <span class="bb_subheadline"><?= $this->title ?></span>
+      </div>
+<!-- Event-ID für JavaScript bereitstellen -->
+<script>window.WSV_EVENT_ID = <?= (int)$this->id ?>;</script>
+{{insert_form::36}}
+<?php endif; ?>
+
+      <?php
+      // Daten abrufen - NEU: Verein aus tl_bb_vereinteilnehmer mit Fallback auf Anmelder-Verein
+      $sql       = "
+        SELECT
+          tl_bb_vereinteilnehmer.id,
+          tl_bb_vereinteilnehmer.pid,
+          tl_bb_vereinteilnehmer.tstamp,
+          tl_bb_vereinteilnehmer.firstname,
+          tl_bb_vereinteilnehmer.lastname,
+          tl_bb_vereinteilnehmer.year,
+          tl_bb_vereinteilnehmer.gender,
+          tl_bb_vereinteilnehmer.discipline,
+          tl_bb_vereinteilnehmer.anmeldungsuid,
+          tl_bb_vereinteilnehmer.published,
+          tl_bb_vereinteilnehmer.eventid,
+          CASE
+            WHEN tl_bb_vereinteilnehmer.verein IS NOT NULL AND tl_bb_vereinteilnehmer.verein != ''
+            THEN tl_bb_vereinteilnehmer.verein
+            ELSE tl_bb_vereinanmelder.verein
+          END AS verein
+        FROM tl_bb_vereinteilnehmer
+        JOIN tl_bb_vereinanmelder
+          ON tl_bb_vereinteilnehmer.pid = tl_bb_vereinanmelder.id
+        WHERE tl_bb_vereinteilnehmer.eventid = ?
+      ";
+      $dbResult  = Database::getInstance()
+                          ->prepare($sql)
+                          ->execute($this->id);
+      $dataArray = $dbResult->fetchAllAssoc();
+
+$exclude    = ['id','pid','tstamp','anmeldungsuid','published','eventid'];
+$headersMap = [
+  'firstname'  => 'Vorname',
+  'lastname'   => 'Nachname',
+  'year'       => 'Geburtsjahr',
+  'gender'     => 'Geschlecht',
+  'discipline' => 'Disziplin',
+  'verein'     => 'Verein'
+];
+
+      // Filter-Optionen
+      $genderOptions = array_unique(array_column($dataArray,'gender'));
+      $vereinOptions = array_unique(array_column($dataArray,'verein'));
+      $yearOptions   = array_unique(array_column($dataArray,'year'));
+      $disciplineOptions = array_unique(array_column($dataArray,'discipline')); //kommt aus Formular
+      sort($genderOptions);
+      sort($vereinOptions);
+      sort($yearOptions);
+      sort($disciplineOptions);
+      ?>
+</div>
+      <?php if (count($dataArray) > 0): ?>
+	  <div class="mod_article information blue">
+        <h3 id="counter" class="tl_info">
+          Aktuell angemeldet: <?= count($dataArray) ?> Personen
+        </h3>
+      <?php endif; ?>
+
+      <?php if (count($dataArray) > 0): ?>
+        <div id="searchContainer" class="tl_search">
+          <div class="tl_text">
+            <label for="searchInput"><i class="material-icons">search</i> Suche:</label>
+            <input type="text" id="searchInput" class="tl_text" onkeyup="filterTable()">
+          </div>
+        </div>
+
+
+
+<?php if ($this->pid == 114): ?><div id="filterContainer" class="tl_filter">
+  <div class="tl_select">
+    <label for="filterDiscipline">Disziplin:</label>
+    <select id="filterDiscipline" class="tl_select" onchange="filterTable()">
+        <option value="">Alle Disziplinen</option>
+        <?php foreach ($disciplineOptions as $d): ?>
+            <option value="<?= htmlspecialchars($d) ?>">
+                <?= htmlspecialchars($d) ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+  </div></div>
+<?php endif; ?>
+
+
+
+
+    <div class="tl_select">
+        <label for="filterYear">Geburtsjahr:</label>
+        <select id="filterYear" class="tl_select" onchange="filterTable()">
+            <option value="">Alle</option>
+            <?php foreach ($yearOptions as $y): ?>
+                <option value="<?= htmlspecialchars($y) ?>"><?= htmlspecialchars($y) ?></option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+    <div class="tl_select">
+        <label for="filterVerein">Verein:</label>
+        <select id="filterVerein" class="tl_select" onchange="filterTable()">
+            <option value="">Alle Vereine</option>
+            <?php foreach ($vereinOptions as $v): ?>
+                <option value="<?= htmlspecialchars($v) ?>"><?= htmlspecialchars($v) ?></option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+        <div class="tl_select">
+        <label for="filterGender">Geschlecht:</label>
+        <select id="filterGender" class="tl_select" onchange="filterTable()">
+            <option value="">Alle</option>
+            <?php foreach ($genderOptions as $g): ?>
+                <option value="<?= htmlspecialchars($g) ?>"><?= htmlspecialchars($g) ?></option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+</div>
+
+
+        <table id="sortableTable" class="tl_table ctable">
+          <thead>
+            <tr>
+              <?php foreach (array_keys($dataArray[0]) as $col): ?>
+                <?php if (!in_array($col, $exclude)): ?>
+                  <th class="tl_header" onclick="sortTable(this)">
+                    <?= htmlspecialchars($headersMap[$col] ?? $col) ?>
+                    <i class="material-icons sort-icon">unfold_more</i>
+                  </th>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($dataArray as $row): ?>
+              <tr>
+                <?php foreach ($row as $key => $val): ?>
+                  <?php if (!in_array($key, $exclude)): ?>
+                    <td class="tl_file"><?= htmlspecialchars($val) ?></td>
+                  <?php endif; ?>
+                <?php endforeach; ?>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+
+        <style style="
+    display: none;">
+          #searchContainer, #filterContainer {
+            margin-bottom: 15px;
+          }
+          #searchContainer label, #filterContainer label {
+            margin-right: 10px;
+            display: inline-flex;
+            align-items: center;
+          }
+          .material-icons {
+            vertical-align: middle;
+            font-size: 20px;
+            margin-right: 5px;
+          }
+          .sort-icon {
+            cursor: pointer;
+            vertical-align: middle;
+          }
+          th.asc .sort-icon::after {
+            content: 'arrow_upward';
+          }
+          th.desc .sort-icon::after {
+            content: 'arrow_downward';
+          }
+        </style>
+
+        <script>
+          function sortTable(header) {
+            const table = header.closest('table');
+            const tbody = table.querySelector('tbody');
+            const index = Array.prototype.indexOf.call(header.parentNode.children, header);
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const isAscending = header.classList.contains('asc');
+            header.classList.toggle('asc', !isAscending);
+            header.classList.toggle('desc', isAscending);
+            header.querySelector('.sort-icon').textContent = isAscending ? 'arrow_downward' : 'arrow_upward';
+            rows.sort((rowA, rowB) => {
+              const cellA = rowA.children[index].textContent.trim();
+              const cellB = rowB.children[index].textContent.trim();
+              if (!isNaN(cellA) && !isNaN(cellB)) {
+                return isAscending ? cellA - cellB : cellB - cellA;
+              }
+              return isAscending
+                ? cellA.localeCompare(cellB, undefined, { numeric: true })
+                : cellB.localeCompare(cellA, undefined, { numeric: true });
+            });
+            rows.forEach(row => tbody.appendChild(row));
+          }
+
+function filterTable() {
+    const searchInput  = document.getElementById('searchInput').value.toLowerCase();
+    const disciplineElem = document.getElementById('filterDiscipline');
+const filterDiscipline = disciplineElem ? disciplineElem.value.toLowerCase() : '';
+    const filterGender = document.getElementById('filterGender').value.toLowerCase();
+    const filterYear   = document.getElementById('filterYear').value.toLowerCase();
+    const filterVerein = document.getElementById('filterVerein').value.toLowerCase();
+    const rows         = document.querySelectorAll('#sortableTable tbody tr');
+    let visibleCount   = 0;
+
+    rows.forEach(row => {
+        const cells = Array.from(row.children).map(c => c.textContent.toLowerCase());
+        const matchSearch = !searchInput || cells.some(txt => txt.includes(searchInput));
+        const matchGender = !filterGender || cells[3] === filterGender;
+        const matchYear   = !filterYear   || cells[2] === filterYear;
+        const matchVerein = !filterVerein || cells[5] === filterVerein;
+        const matchDiscipline = !filterDiscipline || cells[4] === filterDiscipline;
+
+    if (matchSearch && matchGender && matchYear && matchVerein && matchDiscipline) {
+        row.style.display = '';
+        visibleCount++;
+    } else {
+        row.style.display = 'none';
+    }
+    });
+
+    const counterElem = document.getElementById('counter');
+    if (counterElem) {
+        counterElem.textContent = 'Aktuell angemeldet: ' + visibleCount + ' Personen';
+    }
+}
+
+        </script>
+      <?php endif; ?>
+
+<?php endif; /* $wsvAccessGranted */ ?>
+
+    </div> <!-- /#anmelden -->
+
+  <?php else: ?>
+    <!-- kein zukünftiges Event in PID 109/114 -->
+    <!-- indexer::stop -->
+    <div class="submit_container no-padding-top">
+      <a href="javascript:history.back()" class="button">&lt; Zurück</a>
+    </div>
+    <!-- indexer::continue -->
+    <div id="Teilnehmer" class="mod_article no-padding-bottom information">
+      <!-- hier ggf. statischen Inhalt oder Auflistung -->
+    </div></div>
+  <?php endif; ?>
+
+ <!-- /.event -->
