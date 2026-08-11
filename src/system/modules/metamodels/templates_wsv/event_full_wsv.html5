@@ -14,41 +14,6 @@ try {
     $contentDateTime = $currentDateTime;
 }
 
-// ============================================================
-// Passwortschutz für Anmeldeformular und Teilnehmerliste
-// ------------------------------------------------------------
-// Passwort hier ändern:
-$WSV_FORM_PASSWORD = 'Rastbuechl2025';
-// Session-Schlüssel ist event-spezifisch, damit Events unabhängig voneinander gesperrt werden können
-$WSV_SESSION_KEY = 'wsv_anmelde_access_' . (int)$this->id;
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Passwort-Eingabe verarbeiten
-$wsvAccessGranted  = !empty($_SESSION[$WSV_SESSION_KEY]);
-$wsvPasswordError  = false;
-
-if (!$wsvAccessGranted && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wsv_pw'])) {
-    if ($_POST['wsv_pw'] === $WSV_FORM_PASSWORD) {
-        $_SESSION[$WSV_SESSION_KEY] = true;
-        $wsvAccessGranted = true;
-        // Redirect to prevent re-POST on reload (absolute URL erforderlich)
-        header('Location: ' . \Environment::get('base') . \Environment::get('request'));
-        exit;
-    } else {
-        $wsvPasswordError = true;
-    }
-}
-
-// Abmelden (optionaler GET-Parameter ?wsv_logout=1)
-if (isset($_GET['wsv_logout'])) {
-    unset($_SESSION[$WSV_SESSION_KEY]);
-    $wsvAccessGranted = false;
-    header('Location: ' . \Environment::get('base') . strtok(\Environment::get('request'), '?'));
-    exit;
-}
 ?>
 <div class="event layout_full wsvdetail mod_article padding-top-2 block<?= $this->class ?>"
      itemscope itemtype="http://schema.org/Event">
@@ -143,93 +108,6 @@ if (isset($_GET['wsv_logout'])) {
       <!-- Ende .ce_text bb_special_headline -->
 
     <div id="anmelden" class="mod_article no-padding-bottom">
-
-<?php if (!$wsvAccessGranted): ?>
-<!-- ============================================================ -->
-<!-- Passwortschutz                                               -->
-<!-- ============================================================ -->
-<div class="ce_text block wsv-pw-gate">
-  <div class="tl_info" style="max-width:420px;margin:2em auto;padding:2em;border:1px solid #ccc;border-radius:6px;background:#f9f9f9;text-align:center;">
-    <span class="material-icons" style="font-size:2.5rem;color:#555;">lock</span>
-    <h3 style="margin:.5em 0 1em;">Geschützter Bereich</h3>
-    <p style="margin-bottom:1.2em;color:#555;">Bitte gib das Passwort ein, um Anmeldeformular und Teilnehmerliste anzuzeigen.</p>
-    <form method="post" action="<?= htmlspecialchars(\Environment::get('request')) ?>#anmelden">
-      <input type="hidden" name="REQUEST_TOKEN" value="{{request_token}}">
-      <?php if ($wsvPasswordError): ?>
-        <p style="color:#c0392b;margin-bottom:.8em;"><strong>Falsches Passwort – bitte erneut versuchen.</strong></p>
-      <?php endif; ?>
-      <input type="password"
-             name="wsv_pw"
-             placeholder="Passwort"
-             autocomplete="current-password"
-             required
-             style="width:100%;padding:.6em .8em;font-size:1rem;border:1px solid #bbb;border-radius:4px;box-sizing:border-box;margin-bottom:.8em;">
-      <button type="submit"
-              class="button submit"
-              style="width:100%;padding:.65em 1em;font-size:1rem;">
-        Bestätigen
-      </button>
-    </form>
-  </div>
-</div>
-
-<?php else: ?>
-<!-- ============================================================ -->
-<!-- Geschützter Inhalt (Zugang gewährt)                          -->
-<!-- ============================================================ -->
-
-<!-- Markierung + Abmelde-Button -->
-<style>
-  .wsv-protected-area {
-    outline: 2px dashed #aaa;
-    outline-offset: 8px;
-    border-radius: 4px;
-    position: relative;
-    padding-top: 2.8em;
-  }
-  .wsv-access-bar {
-    position: absolute;
-    top: -1px;
-    right: 0;
-    display: flex;
-    align-items: center;
-    gap: .6em;
-    font-size: .8rem;
-    color: #666;
-    background: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 0 0 0 4px;
-    padding: .35em .75em;
-    line-height: 1;
-  }
-  .wsv-access-bar .material-icons { font-size: 1rem; color: #4caf50; }
-  .wsv-logout-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: .3em;
-    font-size: .78rem;
-    color: #555;
-    text-decoration: none;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    padding: .25em .6em;
-    background: #fff;
-    transition: background .15s;
-  }
-  .wsv-logout-btn:hover { background: #f0f0f0; color: #333; text-decoration: none; }
-  .wsv-logout-btn .material-icons { font-size: .9rem; }
-</style>
-
-<div class="wsv-protected-area">
-  <div class="wsv-access-bar">
-    <span class="material-icons">lock_open</span>
-    Geschützter Bereich &nbsp;|&nbsp;
-    <a href="<?= htmlspecialchars(\Environment::get('base') . strtok(\Environment::get('request'), '?')) ?>?wsv_logout=1"
-       class="wsv-logout-btn"
-       title="Abmelden und Bereich sperren">
-      <span class="material-icons">logout</span> Abmelden
-    </a>
-  </div>
 
 <?php
 // ============================================================
@@ -495,10 +373,6 @@ const filterDiscipline = disciplineElem ? disciplineElem.value.toLowerCase() : '
 
         </script>
       <?php endif; ?>
-
-</div><!-- /.wsv-protected-area -->
-
-<?php endif; /* $wsvAccessGranted */ ?>
 
     </div><!-- /#anmelden -->
   </div><!-- /.event layout_full -->
