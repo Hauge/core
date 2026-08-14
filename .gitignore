@@ -1,18 +1,32 @@
-# OS
+# Contao 5 – .gitignore
+
+# Composer
+/vendor/
+/composer.lock
+
+# Symfony / Contao generiert
+/var/
+/assets/
+/public/assets/
+/public/bundles/
+/public/share/
+
+# Credentials – NIEMALS committen
+/.env.local
+/.env.*.local
+
+# Contao Manager
+/public/contao-manager.phar.php
+/contao-manager/
+
+# Uploads und Nutzerdaten
+/files/
+
+# Betriebssystem
 .DS_Store
 Thumbs.db
 
-# IDEs 
-.buildpath
-.project
-.settings/
-.build/
-.external*/
+# IDE
 .idea/
-nbproject/
-
-# composer related
-vendor/
-
-# build
-build/
+.vscode/
+*.swp

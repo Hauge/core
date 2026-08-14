@@ -1,0 +1,9 @@
+# Contao 5 – nginx wird über site-config gesteuert
+# Diese Datei ist ein Platzhalter; der echte Rewrite läuft in nginx.conf
+# Für Apache-Fallback:
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>

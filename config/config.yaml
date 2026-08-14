@@ -1,0 +1,8 @@
+# Symfony / Contao Konfiguration
+# Hier projektspezifische Overrides eintragen
+
+framework:
+    translator:
+        default_path: '%kernel.project_dir%/contao/languages'
+        fallbacks:
+            - de
